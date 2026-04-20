@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ========== COLORS ==========
 RED='\033[1;31m'
@@ -44,9 +44,10 @@ echo -e "${GREEN}6) Install PufferPanel (NEW)${NC}"
 echo -e "${GREEN}7) JLPG VM Manager${NC}"
 echo -e "${GREEN}8) System Info${NC}"
 echo -e "${GREEN}9) Exit${NC}"
+echo -e "${GREEN}10) Install DRCO Panel${NC}"
 
 echo ""
-read -p "👉 Select option [1-9]: " option
+read -p "👉 Select option [1-10]: " option
 
 # ========== PANEL INSTALL ==========
 install_panel() {
@@ -60,11 +61,9 @@ add-apt-repository ppa:ondrej/php -y
 apt update
 apt install php8.1 php8.1-cli php8.1-fpm php8.1-mysql php8.1-gd php8.1-mbstring php8.1-bcmath php8.1-xml php8.1-curl php8.1-zip -y
 
-# Composer
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 
-# Setup Panel
 mkdir -p /var/www/pterodactyl
 cd /var/www/pterodactyl
 
@@ -77,7 +76,6 @@ cp .env.example .env
 composer install --no-dev --optimize-autoloader
 php artisan key:generate
 
-# Database Setup
 mysql -u root <<EOF
 CREATE DATABASE panel;
 CREATE USER 'ptero'@'127.0.0.1' IDENTIFIED BY 'StrongPassword';
@@ -85,18 +83,14 @@ GRANT ALL PRIVILEGES ON panel.* TO 'ptero'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
 
-# Env Setup
 php artisan p:environment:setup
 php artisan p:environment:database
 php artisan p:environment:mail
 
-# Migration
 php artisan migrate --seed --force
 
-# Permissions
 chown -R www-data:www-data /var/www/pterodactyl/*
 
-# Nginx Config
 rm -f /etc/nginx/sites-enabled/default
 
 cat <<EOF > /etc/nginx/sites-available/pterodactyl.conf
@@ -162,10 +156,10 @@ echo -e "${GREEN}✅ Wings Installed!${NC}"
 echo -e "${YELLOW}⚠️ Config Panel se generate karke /etc/pterodactyl/config.yml me daalo${NC}"
 }
 
-# ========== NEW PUFFER PANEL ==========
+# ========== PUFFER ==========
 install_puffer() {
 loading
-echo -e "${CYAN}Installing PufferPanel (NEW)...${NC}"
+echo -e "${CYAN}Installing PufferPanel...${NC}"
 
 read -p "Install PufferPanel? (y/n): " confirm
 if [[ $confirm != "y" ]]; then
@@ -176,7 +170,18 @@ fi
 bash <(curl -sSL https://raw.githubusercontent.com/MrRangerXD/puffer-panel/refs/heads/main/install)
 
 echo -e "${GREEN}✅ PufferPanel Installed!${NC}"
-echo -e "${YELLOW}🌐 Open: http://YOUR_IP:8080${NC}"
+}
+
+# ========== DRCO ==========
+install_drco() {
+loading
+echo -e "${CYAN}Installing DRCO Panel...${NC}"
+
+bash <(curl -s https://raw.githubusercontent.com/jlpggamerz/drco-panel-ka-cmd-hai-one-wala/refs/heads/main/install.sh) || {
+  echo -e "${RED}❌ DRCO install failed${NC}"
+}
+
+echo -e "${GREEN}✅ DRCO Install Attempted!${NC}"
 }
 
 # ========== SYSTEM INFO ==========
@@ -191,47 +196,17 @@ echo -e "${GREEN}IP:${NC} $(curl -s ifconfig.me)"
 # ========== MENU CONTROL ==========
 case $option in
 
-1)
-install_panel
-;;
+1) install_panel ;;
+2) install_wings ;;
+3) install_panel && install_wings ;;
+4) cd /var/www/pterodactyl && php artisan p:user:make ;;
+5) bash <(curl -s https://raw.githubusercontent.com/jlpggamerz/Wingcmd/refs/heads/main/install.sh) ;;
+6) install_puffer ;;
+7) bash <(curl -s https://raw.githubusercontent.com/jlpggamerz/Vps-cmd-code-/refs/heads/main/install.sh) ;;
+8) system_info ;;
+9) echo -e "${RED}Exiting...${NC}" && exit ;;
+10) install_drco ;;
 
-2)
-install_wings
-;;
-
-3)
-install_panel
-install_wings
-;;
-
-4)
-cd /var/www/pterodactyl || exit
-php artisan p:user:make
-;;
-
-5)
-bash <(curl -s https://raw.githubusercontent.com/jlpggamerz/Wingcmd/refs/heads/main/install.sh)
-;;
-
-6)
-install_puffer
-;;
-
-7)
-bash <(curl -s https://raw.githubusercontent.com/jlpggamerz/Vps-cmd-code-/refs/heads/main/install.sh)
-;;
-
-8)
-system_info
-;;
-
-9)
-echo -e "${RED}Exiting...${NC}"
-exit
-;;
-
-*)
-echo -e "${RED}Invalid Option!${NC}"
-;;
+*) echo -e "${RED}Invalid Option!${NC}" ;;
 
 esac
